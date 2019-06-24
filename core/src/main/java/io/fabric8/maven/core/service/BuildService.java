@@ -16,10 +16,10 @@
 package io.fabric8.maven.core.service;
 
 import java.io.File;
-
 import io.fabric8.kubernetes.api.model.KubernetesListBuilder;
 import io.fabric8.maven.core.config.BuildRecreateMode;
 import io.fabric8.maven.core.config.OpenShiftBuildStrategy;
+import io.fabric8.maven.core.service.kubernetes.JibBuildConfiguration;
 import io.fabric8.maven.docker.config.ImageConfiguration;
 import io.fabric8.maven.docker.service.ImagePullManager;
 import io.fabric8.maven.docker.util.MojoParameters;
