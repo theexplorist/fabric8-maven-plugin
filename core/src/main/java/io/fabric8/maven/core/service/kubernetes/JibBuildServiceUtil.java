@@ -37,7 +37,11 @@ public class JibBuildServiceUtil {
         List<String> portList = buildConfiguration.getPorts();
         Set<Port> portSet = getPortSet(portList);
 
-        buildImage(fromImage, targetImage, envMap, credential, portSet, buildConfiguration.getFatJar());
+        List<String> entrypointList = new ArrayList<>();
+        if(buildConfiguration.getEntryPoint() != null) {
+            entrypointList = buildConfiguration.getEntryPoint().asStrings();
+        }
+        buildImage(fromImage, targetImage, envMap, credential, portSet, buildConfiguration.getFatJar(), entrypointList, buildConfiguration.getTargetDir());
     }
 
     private static Set<Port> getPortSet(List<String> ports) {
@@ -50,7 +54,7 @@ public class JibBuildServiceUtil {
         return portSet;
     }
 
-    protected static JibContainer buildImage(String baseImage, String targetImage, Map<String, String> envMap, Credential credential, Set<Port> portSet, Path fatJar) throws InvalidImageReferenceException {
+    protected static JibContainer buildImage(String baseImage, String targetImage, Map<String, String> envMap, Credential credential, Set<Port> portSet, Path fatJar, List<String> entrypointList, String targetDir) throws InvalidImageReferenceException {
 
         JibContainerBuilder contBuild = Jib.from(baseImage);
 
@@ -63,13 +67,13 @@ public class JibBuildServiceUtil {
         }
 
         if (fatJar != null) {
-            // TODO parameterize pathInContainer to targetDir
             contBuild = contBuild
-                    .addLayer(LayerConfiguration.builder().addEntry(fatJar, AbsoluteUnixPath.get("/app")).build());
-
+                    .addLayer(LayerConfiguration.builder().addEntry(fatJar, AbsoluteUnixPath.get(targetDir)).build());
         }
 
-        // TODO ADD ENTRYPOINT!!!
+        if(!entrypointList.isEmpty()) {
+            contBuild = contBuild.setEntrypoint(entrypointList);
+        }
 
         if (credential != null) {
             String username = credential.getUsername();
@@ -91,6 +95,12 @@ public class JibBuildServiceUtil {
 
         RegistryService.RegistryConfig registryConfig = config.getDockerBuildContext().getRegistryConfig();
 
+        String targetDir = buildImageConfiguration.getAssemblyConfiguration().getTargetDir();
+
+        if(targetDir == null) {
+            targetDir = "/app";
+        }
+
         AuthConfig authConfig = registryConfig.getAuthConfigFactory()
                 .createAuthConfig(true, true, registryConfig.getAuthConfig(),
                         registryConfig.getSettings(), null, registryConfig.getRegistry());
@@ -99,8 +109,10 @@ public class JibBuildServiceUtil {
                 .envMap(buildImageConfiguration.getEnv())
                 .ports(buildImageConfiguration.getPorts())
                 .credential(Credential.from(authConfig.getUsername(), authConfig.getPassword()))
+                .entrypoint(buildImageConfiguration.getEntryPoint())
                 .targetImage(fullImageName)
                 .pushRegistry(registryConfig.getRegistry())
+                .targetDir(targetDir)
                 .buildDirectory(config.getBuildDirectory())
                 .build();
     }

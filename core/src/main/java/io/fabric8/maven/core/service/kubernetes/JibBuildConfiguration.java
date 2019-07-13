@@ -3,6 +3,7 @@ package io.fabric8.maven.core.service.kubernetes;
 import com.google.cloud.tools.jib.api.Credential;
 import com.google.cloud.tools.jib.api.Port;
 import io.fabric8.maven.core.util.FatJarDetector;
+import io.fabric8.maven.docker.config.Arguments;
 import io.fabric8.maven.docker.util.DeepCopy;
 import org.apache.maven.project.MavenProject;
 
@@ -28,8 +29,16 @@ public class JibBuildConfiguration {
 
     private Path fatJarPath;
 
+    private Arguments entrypoint;
+
+    private String targetDir;
+
     private JibBuildConfiguration() {
     }
+
+    public Arguments getEntryPoint() {return entrypoint;}
+
+    public String getTargetDir() {return targetDir;}
 
     public Map<String, String> getEnvMap() {
         return envMap;
@@ -94,6 +103,11 @@ public class JibBuildConfiguration {
             return this;
         }
 
+        public Builder entrypoint(Arguments entrypoint) {
+            configutil.entrypoint = entrypoint;
+            return this;
+        }
+
         public Builder pushRegistry(String pushRegistry) {
             configutil.pushRegistry = pushRegistry;
             return this;
@@ -101,6 +115,11 @@ public class JibBuildConfiguration {
 
         public Builder buildDirectory(String buildDir) {
             configutil.fatJarPath = JibBuildServiceUtil.getFatJar(buildDir);
+            return this;
+        }
+
+        public Builder targetDir(String targetDir) {
+            configutil.targetDir = targetDir;
             return this;
         }
 
