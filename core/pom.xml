@@ -34,6 +34,11 @@
   <dependencies>
 
     <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>run-java-sh</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.cloud.tools</groupId>
       <artifactId>jib-core</artifactId>
       <version>0.10.0</version>
