@@ -69,6 +69,7 @@
         <version>4.2-SNAPSHOT</version>
 
         <configuration>
+          <isJib>true</isJib>
           <namespace>spring-boot-ns</namespace>
           <resources>
             <labels>
@@ -78,6 +79,17 @@
             </labels>
           </resources>
 
+          <generator>
+            <includes>
+              <include>spring-boot</include>
+            </includes>
+            <config>
+              <spring-boot>
+                <name>devanggaur7/${project.artifactId}:${project.version}</name>
+                <alias>ping</alias>
+              </spring-boot>
+            </config>
+          </generator>
           <enricher>
             <includes>
               <include>fmp-portname</include>

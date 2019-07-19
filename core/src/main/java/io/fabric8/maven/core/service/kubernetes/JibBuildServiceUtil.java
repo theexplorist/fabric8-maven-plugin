@@ -1,34 +1,45 @@
 package io.fabric8.maven.core.service.kubernetes;
 
-import com.google.cloud.tools.jib.api.*;
-import com.google.cloud.tools.jib.registry.credentials.DockerConfigCredentialRetriever;
+import com.google.cloud.tools.jib.api.AbsoluteUnixPath;
+import com.google.cloud.tools.jib.api.Containerizer;
+import com.google.cloud.tools.jib.api.Credential;
+import com.google.cloud.tools.jib.api.InvalidImageReferenceException;
+import com.google.cloud.tools.jib.api.Jib;
+import com.google.cloud.tools.jib.api.JibContainer;
+import com.google.cloud.tools.jib.api.JibContainerBuilder;
+import com.google.cloud.tools.jib.api.LayerConfiguration;
+import com.google.cloud.tools.jib.api.Port;
+import com.google.cloud.tools.jib.api.RegistryImage;
+import com.google.cloud.tools.jib.api.TarImage;
 import io.fabric8.maven.core.model.Dependency;
 import io.fabric8.maven.core.model.GroupArtifactVersion;
 import io.fabric8.maven.core.service.BuildService;
-import io.fabric8.maven.core.service.Fabric8ServiceException;
 import io.fabric8.maven.core.util.FatJarDetector;
 import io.fabric8.maven.docker.access.AuthConfig;
 import io.fabric8.maven.docker.config.AssemblyConfiguration;
 import io.fabric8.maven.docker.config.BuildImageConfiguration;
 import io.fabric8.maven.docker.config.ImageConfiguration;
-import io.fabric8.maven.docker.config.RegistryAuthConfiguration;
 import io.fabric8.maven.docker.service.RegistryService;
-import io.fabric8.maven.docker.util.ImageName;
-import org.apache.maven.Maven;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 
 public class JibBuildServiceUtil {
 
     private JibBuildServiceUtil() {}
+
+    private static final String DEFAULT_JAR_NAME = "/app.jar";
 
     public static void buildImage(JibBuildConfiguration buildConfiguration) throws InvalidImageReferenceException {
 
@@ -69,8 +80,8 @@ public class JibBuildServiceUtil {
         }
 
         if (fatJar != null) {
-
-            String jarPath = targetDir + "/app.jar";
+            String fatJarName = fatJar.getFileName().toString();
+            String jarPath = targetDir + (fatJarName.isEmpty() ? DEFAULT_JAR_NAME: fatJarName);
             contBuild = contBuild
                     .addLayer(LayerConfiguration.builder().addEntry(fatJar, AbsoluteUnixPath.get(jarPath)).build());
         }
@@ -87,6 +98,7 @@ public class JibBuildServiceUtil {
                 return contBuild.containerize(
                         Containerizer.to(RegistryImage.named(targetImage)
                                 .addCredential(username, password)));
+
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -112,7 +124,7 @@ public class JibBuildServiceUtil {
         MavenProject project = config.getDockerMojoParameters().getProject();
 
         if(targetDir == null) {
-            targetDir = "/app";
+            targetDir = "/deployments";
         }
 
         AuthConfig authConfig = registryConfig.getAuthConfigFactory()
