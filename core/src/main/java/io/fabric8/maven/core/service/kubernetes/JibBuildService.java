@@ -34,16 +34,20 @@ public class JibBuildService implements BuildService {
        try {
            List<String> tags = imageConfiguration.getBuildConfiguration().getTags();
 
+           JibBuildConfiguration jibBuildConfiguration;
+           String fullName = "";
            if (tags.size() > 0) {
-               JibBuildConfiguration jibBuildConfiguration;
                for (String tag : tags) {
                    if (tag != null) {
-                       String fullName = new ImageName(imageConfiguration.getName(), tag).getFullName();
-                       jibBuildConfiguration = JibBuildServiceUtil.getJibBuildConfiguration(config, imageConfiguration, fullName);
-                       JibBuildServiceUtil.buildImage(jibBuildConfiguration);
+                        fullName = new ImageName(imageConfiguration.getName(), tag).getFullName();
                    }
                }
+           } else {
+               fullName = new ImageName(imageConfiguration.getName(), null).getFullName();
            }
+
+           jibBuildConfiguration = JibBuildServiceUtil.getJibBuildConfiguration(config, imageConfiguration, fullName);
+           JibBuildServiceUtil.buildImage(jibBuildConfiguration);
        } catch (Exception ex) {
            throw new UnsupportedOperationException();
        }
