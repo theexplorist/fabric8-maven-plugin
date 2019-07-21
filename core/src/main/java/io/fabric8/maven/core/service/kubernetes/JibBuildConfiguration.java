@@ -33,12 +33,16 @@ public class JibBuildConfiguration {
 
     private String targetDir;
 
+    private String outputDir;
+
     private JibBuildConfiguration() {
     }
 
     public Arguments getEntryPoint() {return entrypoint;}
 
     public String getTargetDir() {return targetDir;}
+
+    public String getOutputDir() {return outputDir;}
 
     public Map<String, String> getEnvMap() {
         return envMap;
@@ -120,6 +124,11 @@ public class JibBuildConfiguration {
 
         public Builder targetDir(String targetDir) {
             configutil.targetDir = targetDir;
+            return this;
+        }
+
+        public Builder outputDir(String outputDir) {
+            configutil.outputDir = outputDir;
             return this;
         }
 

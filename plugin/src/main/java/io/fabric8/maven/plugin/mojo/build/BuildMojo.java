@@ -25,6 +25,7 @@ import io.fabric8.maven.core.config.ResourceConfig;
 import io.fabric8.maven.core.config.RuntimeMode;
 import io.fabric8.maven.core.service.BuildService;
 import io.fabric8.maven.core.service.Fabric8ServiceHub;
+import io.fabric8.maven.core.util.Configs;
 import io.fabric8.maven.core.util.ProfileUtil;
 import io.fabric8.maven.docker.access.DockerAccessException;
 import io.fabric8.maven.docker.config.ImageConfiguration;
@@ -223,7 +224,7 @@ public class BuildMojo extends io.fabric8.maven.docker.BuildMojo {
 
     @Override
     protected boolean isDockerAccessRequired() {
-        return runtimeMode == RuntimeMode.kubernetes;
+        return runtimeMode == RuntimeMode.kubernetes && !isJibMode();
     }
 
     @Override
@@ -339,7 +340,11 @@ public class BuildMojo extends io.fabric8.maven.docker.BuildMojo {
         if (runtimeMode == RuntimeMode.openshift) {
             log.info("Using [[B]]OpenShift[[B]] build with strategy [[B]]%s[[B]]", buildStrategy.getLabel());
         } else {
-            log.info("Building Docker image in [[B]]Kubernetes[[B]] mode");
+            if(isJibMode()) {
+                log.info("Building Jib image in [[B]]Kubernetes[[B]] mode");
+            } else {
+                log.info("Building Docker image in [[B]]Kubernetes[[B]] mode");
+            }
         }
 
         if (runtimeMode.equals(PlatformMode.openshift)) {
@@ -354,6 +359,18 @@ public class BuildMojo extends io.fabric8.maven.docker.BuildMojo {
         } catch (MojoExecutionException e) {
             throw new IllegalArgumentException("Cannot extract generator config: " + e, e);
         }
+    }
+
+    protected boolean isJibMode() {
+        return isJib || Configs.asBoolean(getProperty("fabric8.build.jib"));
+    }
+
+    private String getProperty(String key) {
+        String value = System.getProperty(key);
+        if (value == null) {
+            value = project.getProperties().getProperty(key);
+        }
+        return value;
     }
 
     @Override

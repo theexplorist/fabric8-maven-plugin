@@ -20,7 +20,6 @@ import java.util.Objects;
 public class JibBuildService implements BuildService {
 
     // TODO ADD LOGGING
-    // TODO CHECK FOR WAR SUPPORT
     private BuildServiceConfig config;
 
     private JibBuildService() { }
