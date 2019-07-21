@@ -14,6 +14,7 @@ import io.fabric8.maven.docker.config.ImageConfiguration;
 import io.fabric8.maven.docker.config.RegistryAuthConfiguration;
 import io.fabric8.maven.docker.service.RegistryService;
 import io.fabric8.maven.docker.util.ImageName;
+import org.apache.maven.Maven;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
@@ -22,6 +23,7 @@ import org.apache.maven.project.MavenProject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class JibBuildServiceUtil {
@@ -41,7 +43,7 @@ public class JibBuildServiceUtil {
         if(buildConfiguration.getEntryPoint() != null) {
             entrypointList = buildConfiguration.getEntryPoint().asStrings();
         }
-        buildImage(fromImage, targetImage, envMap, credential, portSet, buildConfiguration.getFatJar(), entrypointList, buildConfiguration.getTargetDir());
+        buildImage(fromImage, targetImage, envMap, credential, portSet, buildConfiguration.getFatJar(), entrypointList, buildConfiguration.getTargetDir(), buildConfiguration.getOutputDir());
     }
 
     private static Set<Port> getPortSet(List<String> ports) {
@@ -54,7 +56,7 @@ public class JibBuildServiceUtil {
         return portSet;
     }
 
-    protected static JibContainer buildImage(String baseImage, String targetImage, Map<String, String> envMap, Credential credential, Set<Port> portSet, Path fatJar, List<String> entrypointList, String targetDir) throws InvalidImageReferenceException {
+    protected static JibContainer buildImage(String baseImage, String targetImage, Map<String, String> envMap, Credential credential, Set<Port> portSet, Path fatJar, List<String> entrypointList, String targetDir, String outputDir) throws InvalidImageReferenceException {
 
         JibContainerBuilder contBuild = Jib.from(baseImage);
 
@@ -67,8 +69,10 @@ public class JibBuildServiceUtil {
         }
 
         if (fatJar != null) {
+
+            String jarPath = targetDir + "/app.jar";
             contBuild = contBuild
-                    .addLayer(LayerConfiguration.builder().addEntry(fatJar, AbsoluteUnixPath.get(targetDir)).build());
+                    .addLayer(LayerConfiguration.builder().addEntry(fatJar, AbsoluteUnixPath.get(jarPath)).build());
         }
 
         if(!entrypointList.isEmpty()) {
@@ -86,8 +90,14 @@ public class JibBuildServiceUtil {
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
+        } else {
+
+            try {
+                return contBuild.containerize(Containerizer.to(TarImage.named(targetImage).saveTo(Paths.get(outputDir + "/" + targetImage + ".tar"))));
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
         }
-        return null;
     }
 
     public static JibBuildConfiguration getJibBuildConfiguration(BuildService.BuildServiceConfig config, ImageConfiguration imageConfiguration, String fullImageName) throws MojoExecutionException {
@@ -97,6 +107,10 @@ public class JibBuildServiceUtil {
 
         String targetDir = buildImageConfiguration.getAssemblyConfiguration().getTargetDir();
 
+        String outputDir = config.getDockerMojoParameters().getOutputDirectory();
+
+        MavenProject project = config.getDockerMojoParameters().getProject();
+
         if(targetDir == null) {
             targetDir = "/app";
         }
@@ -105,27 +119,37 @@ public class JibBuildServiceUtil {
                 .createAuthConfig(true, true, registryConfig.getAuthConfig(),
                         registryConfig.getSettings(), null, registryConfig.getRegistry());
 
-        return  new JibBuildConfiguration.Builder().from(buildImageConfiguration.getFrom())
-                .envMap(buildImageConfiguration.getEnv())
-                .ports(buildImageConfiguration.getPorts())
-                .credential(Credential.from(authConfig.getUsername(), authConfig.getPassword()))
-                .entrypoint(buildImageConfiguration.getEntryPoint())
-                .targetImage(fullImageName)
-                .pushRegistry(registryConfig.getRegistry())
-                .targetDir(targetDir)
-                .buildDirectory(config.getBuildDirectory())
-                .build();
+
+        JibBuildConfiguration.Builder jibBuildConfigurationBuilder = new JibBuildConfiguration.Builder().from(buildImageConfiguration.getFrom())
+                                                                                                        .envMap(buildImageConfiguration.getEnv())
+                                                                                                        .ports(buildImageConfiguration.getPorts())
+                                                                                                        .entrypoint(buildImageConfiguration.getEntryPoint())
+                                                                                                        .targetImage(fullImageName)
+                                                                                                        .pushRegistry(registryConfig.getRegistry())
+                                                                                                        .targetDir(targetDir)
+                                                                                                        .outputDir(outputDir)
+                                                                                                        .buildDirectory(config.getBuildDirectory());
+
+        if(authConfig != null) {
+            jibBuildConfigurationBuilder.credential(Credential.from(authConfig.getUsername(), authConfig.getPassword()));
+        }
+
+        return jibBuildConfigurationBuilder.build();
     }
 
     public static Path getFatJar(String buildDir) {
         FatJarDetector fatJarDetector = new FatJarDetector(buildDir);
         try {
             FatJarDetector.Result result = fatJarDetector.scan();
-            return result.getArchiveFile().toPath();
+            if(result != null) {
+                return result.getArchiveFile().toPath();
+            }
+
         } catch (MojoExecutionException e) {
             // TODO log.err("MOJO EXEC EXCEPTION!")
             throw new UnsupportedOperationException();
         }
+        return null;
     }
 
     private static String extractBaseImage(BuildImageConfiguration buildImgConfig) {

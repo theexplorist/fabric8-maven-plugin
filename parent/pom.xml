@@ -271,12 +271,6 @@
 
       <dependency>
         <groupId>io.fabric8</groupId>
-        <artifactId>run-java-sh</artifactId>
-        <version>1.2.1</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.fabric8</groupId>
         <artifactId>kubernetes-client</artifactId>
         <version>${version.kubernetes-client}</version>
       </dependency>
