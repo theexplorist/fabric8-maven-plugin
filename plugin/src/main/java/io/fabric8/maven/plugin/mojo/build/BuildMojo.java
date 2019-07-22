@@ -257,7 +257,6 @@ public class BuildMojo extends io.fabric8.maven.docker.BuildMojo {
                         .build();
 
             if (isJib) {
-                //buildJibConfigUtil(resolvedImages);
                 for (ImageConfiguration imageConfig : resolvedImages) {
                     buildAndTag(null, imageConfig);
                 }
@@ -341,9 +340,9 @@ public class BuildMojo extends io.fabric8.maven.docker.BuildMojo {
             log.info("Using [[B]]OpenShift[[B]] build with strategy [[B]]%s[[B]]", buildStrategy.getLabel());
         } else {
             if(isJibMode()) {
-                log.info("Building Jib image in [[B]]Kubernetes[[B]] mode");
+                log.info("Building Container image with Java Image Builder in [[B]]Kubernetes[[B]] mode");
             } else {
-                log.info("Building Docker image in [[B]]Kubernetes[[B]] mode");
+                log.info("Building Container image with Docker in [[B]]Kubernetes[[B]] mode");
             }
         }
 

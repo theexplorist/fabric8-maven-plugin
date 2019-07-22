@@ -11,21 +11,16 @@ import com.google.cloud.tools.jib.api.LayerConfiguration;
 import com.google.cloud.tools.jib.api.Port;
 import com.google.cloud.tools.jib.api.RegistryImage;
 import com.google.cloud.tools.jib.api.TarImage;
-import io.fabric8.maven.core.model.Dependency;
-import io.fabric8.maven.core.model.GroupArtifactVersion;
 import io.fabric8.maven.core.service.BuildService;
 import io.fabric8.maven.core.util.FatJarDetector;
 import io.fabric8.maven.docker.access.AuthConfig;
-import io.fabric8.maven.docker.config.AssemblyConfiguration;
 import io.fabric8.maven.docker.config.BuildImageConfiguration;
 import io.fabric8.maven.docker.config.ImageConfiguration;
 import io.fabric8.maven.docker.service.RegistryService;
-import org.apache.maven.artifact.Artifact;
+import io.fabric8.maven.docker.util.Logger;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 
-
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -41,7 +36,7 @@ public class JibBuildServiceUtil {
 
     private static final String DEFAULT_JAR_NAME = "/app.jar";
 
-    public static void buildImage(JibBuildConfiguration buildConfiguration) throws InvalidImageReferenceException {
+    public static void buildImage(JibBuildConfiguration buildConfiguration, Logger log) throws InvalidImageReferenceException {
 
         String fromImage = buildConfiguration.getFrom();
         String targetImage = buildConfiguration.getTargetImage();
@@ -54,7 +49,7 @@ public class JibBuildServiceUtil {
         if(buildConfiguration.getEntryPoint() != null) {
             entrypointList = buildConfiguration.getEntryPoint().asStrings();
         }
-        buildImage(fromImage, targetImage, envMap, credential, portSet, buildConfiguration.getFatJar(), entrypointList, buildConfiguration.getTargetDir(), buildConfiguration.getOutputDir());
+        buildImage(fromImage, targetImage, envMap, credential, portSet, buildConfiguration.getFatJar(), entrypointList, buildConfiguration.getTargetDir(), buildConfiguration.getOutputDir(), log);
     }
 
     private static Set<Port> getPortSet(List<String> ports) {
@@ -67,7 +62,7 @@ public class JibBuildServiceUtil {
         return portSet;
     }
 
-    protected static JibContainer buildImage(String baseImage, String targetImage, Map<String, String> envMap, Credential credential, Set<Port> portSet, Path fatJar, List<String> entrypointList, String targetDir, String outputDir) throws InvalidImageReferenceException {
+    protected static JibContainer buildImage(String baseImage, String targetImage, Map<String, String> envMap, Credential credential, Set<Port> portSet, Path fatJar, List<String> entrypointList, String targetDir, String outputDir, Logger log) throws InvalidImageReferenceException {
 
         JibContainerBuilder contBuild = Jib.from(baseImage);
 
@@ -76,6 +71,7 @@ public class JibBuildServiceUtil {
         }
 
         if (!portSet.isEmpty()) {
+
             contBuild = contBuild.setExposedPorts(portSet);
         }
 
@@ -95,10 +91,11 @@ public class JibBuildServiceUtil {
             String password = credential.getPassword();
 
         try {
-                return contBuild.containerize(
+                JibContainer jibContainer = contBuild.containerize(
                         Containerizer.to(RegistryImage.named(targetImage)
                                 .addCredential(username, password)));
-
+                log.info("Image %s successfully built and pushed.", targetImage);
+                return jibContainer;
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -164,40 +161,4 @@ public class JibBuildServiceUtil {
         return null;
     }
 
-    private static String extractBaseImage(BuildImageConfiguration buildImgConfig) {
-
-        String fromImage = buildImgConfig.getFrom();
-        if (fromImage == null) {
-            AssemblyConfiguration assemblyConfig = buildImgConfig.getAssemblyConfiguration();
-            if (assemblyConfig == null) {
-                fromImage = "busybox";
-            }
-        }
-        return fromImage;
-    }
-
-    public static List<Path> getDependencies(boolean transitive, MavenProject project) {
-        final Set<Artifact> artifacts = transitive ?
-                project.getArtifacts() : project.getDependencyArtifacts();
-
-        final List<Dependency> dependencies = new ArrayList<>();
-
-        for (Artifact artifact : artifacts) {
-            dependencies.add(
-                    new Dependency(new GroupArtifactVersion(artifact.getGroupId(),
-                            artifact.getArtifactId(),
-                            artifact.getVersion()),
-                            artifact.getType(),
-                            artifact.getScope(),
-                            artifact.getFile()));
-        }
-
-        final List<Path> dependenciesPath = new ArrayList<>();
-        for(Dependency dep : dependencies) {
-            File depLocation = dep.getLocation();
-            Path depPath = depLocation.toPath();
-            dependenciesPath.add(depPath);
-        }
-        return dependenciesPath;
-    }
 }

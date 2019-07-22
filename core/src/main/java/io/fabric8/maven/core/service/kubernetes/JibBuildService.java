@@ -9,6 +9,7 @@ import io.fabric8.maven.docker.service.RegistryService;
 import io.fabric8.maven.docker.service.ServiceHub;
 import io.fabric8.maven.docker.util.EnvUtil;
 import io.fabric8.maven.docker.util.ImageName;
+import io.fabric8.maven.docker.util.Logger;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 
@@ -22,11 +23,13 @@ public class JibBuildService implements BuildService {
     // TODO ADD LOGGING
     private BuildServiceConfig config;
 
+    private Logger log;
     private JibBuildService() { }
 
-    public JibBuildService (BuildServiceConfig config) {
+    public JibBuildService (BuildServiceConfig config, Logger log) {
         Objects.requireNonNull(config, "config");
         this.config = config;
+        this.log = log;
     }
 
     @Override
@@ -47,7 +50,7 @@ public class JibBuildService implements BuildService {
            }
 
            jibBuildConfiguration = JibBuildServiceUtil.getJibBuildConfiguration(config, imageConfiguration, fullName);
-           JibBuildServiceUtil.buildImage(jibBuildConfiguration);
+           JibBuildServiceUtil.buildImage(jibBuildConfiguration, log);
        } catch (Exception ex) {
            throw new UnsupportedOperationException();
        }

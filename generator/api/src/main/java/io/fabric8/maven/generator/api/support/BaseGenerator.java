@@ -126,7 +126,7 @@ abstract public class BaseGenerator implements Generator {
                 fromImage = fromSelector != null ? fromSelector.getFrom() : null;
             }
             builder.from(fromImage);
-            log.info("Using Docker image %s as base / builder", fromImage);
+            log.info("Using Container image %s as base / builder", fromImage);
         } else if ("istag".equalsIgnoreCase(fromMode)) {
             Map<String, String> fromExt = new HashMap<>();
             if (from != null) {

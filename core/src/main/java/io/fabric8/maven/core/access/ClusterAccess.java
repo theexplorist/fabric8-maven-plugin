@@ -116,7 +116,7 @@ public class ClusterAccess {
         } catch (KubernetesClientException exp) {
             Throwable cause = exp.getCause();
             String prefix = cause instanceof UnknownHostException ? "Unknown host " : "";
-            log.warn("Cannot access cluster for detecting mode: %s%s",
+            log.warn("Cannot access OpenShift cluster for detecting mode: %s%s",
                      prefix,
                      cause != null ? cause.getMessage() : exp.getMessage());
         }
