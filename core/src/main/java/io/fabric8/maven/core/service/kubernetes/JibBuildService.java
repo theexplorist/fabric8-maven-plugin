@@ -51,7 +51,7 @@ public class JibBuildService implements BuildService {
 
            jibBuildConfiguration = JibBuildServiceUtil.getJibBuildConfiguration(config, imageConfiguration, fullName);
            JibBuildServiceUtil.buildImage(jibBuildConfiguration, log);
-       } catch (Exception ex) {
+   } catch (Exception ex) {
            throw new UnsupportedOperationException();
        }
     }
