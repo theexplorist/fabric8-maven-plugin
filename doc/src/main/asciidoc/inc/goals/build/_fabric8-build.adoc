@@ -19,7 +19,7 @@ If the mode is set to `kubernetes` then a normal Docker build or Dockerless JIB 
 | In order to make the generated images available to the Kubernetes cluster the generated images need to be pushed to a registry with the goal <<fabric8:push>> when a standard Docker build is performed.This is not necessary for single node clusters, though as there is no need to distribute images.
 
 | `JIB`
-| A Dockerless https://github.com/GoogleContainerTools/jib[JIB Build] is performed when `fabric8.build.jib` property is set to true or `isJib` flag is set to true in pom.xml.Do ker daemon is not required to perform a JIB build. The generated image can be automatically pushed to the authorized registry if the credentials are correctly configured. More about https://maven.fabric8.io/#authentication[authentication] here.
+| A Dockerless https://github.com/GoogleContainerTools/jib[JIB Build] is performed when `fabric8.build.jib` property is set to true or `isJib` flag is set to true in pom.xml.Docker daemon is not required to perform a JIB build. The generated image can be automatically pushed to the authorized registry if the credentials are correctly configured. More about https://maven.fabric8.io/#authentication[authentication] here.
 |===
 
 .Jib Image Types
@@ -65,8 +65,6 @@ For automatic push to registry, conventions for target image configuration shoul
 <name>${image.user}/${project.artifactId}:${project.version}</name>
 ----  
 where `${image.user}` should be replaced with registry username.
-
-In order to make the generated images available to the Kubernetes cluster the generated images need to be pushed to a registry with the goal <<fabric8:push>>. This is not necessary for single node clusters, though as there is no need to distribute images.
 
 Currently, Apart from Java 8, base images for Java 11 are supported for Kubernetes build. To enable Java 11 base images,
 user needs to specift release version 11 in their `maven-compiler-plugin` configuration in their project pom.
