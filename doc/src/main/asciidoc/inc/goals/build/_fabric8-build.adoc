@@ -178,6 +178,10 @@ a| If the effective <<build-mode,mode>> is `openshift` then this option sets the
 By default S2I is used.
 | `fabric8.build.strategy`
 
+| *isJib*
+a| If the effective <<build-mode,mode>> is `kubernetes` then this option sets the build mode to JIB to perform a dockerless JIB build.
+| `fabric8.build.jib`
+
 |*forcePull*
 |
 Applicable only for OpenShift, S2I build strategy.
