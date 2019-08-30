@@ -16,6 +16,7 @@
 package io.fabric8.maven.core.service.kubernetes;
 
 import com.google.cloud.tools.jib.api.AbsoluteUnixPath;
+import com.google.cloud.tools.jib.api.CacheDirectoryCreationException;
 import com.google.cloud.tools.jib.api.Containerizer;
 import com.google.cloud.tools.jib.api.Credential;
 import com.google.cloud.tools.jib.api.ImageReference;
@@ -38,13 +39,16 @@ import io.fabric8.maven.docker.util.Logger;
 import io.fabric8.maven.docker.util.MojoParameters;
 import org.apache.maven.plugin.MojoExecutionException;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public class JibBuildServiceUtil {
 
@@ -123,22 +127,37 @@ public class JibBuildServiceUtil {
             JibContainer jibRegistryImageContainer = contBuild.containerize(containerizer);
             log.info("Image %s successfully built and pushed.", targetImage);
             return jibRegistryImageContainer;
-        } catch (RegistryException re) {
-            log.warn("Registry Exception occured : %s", re.getMessage());
-            log.warn("Credentials are probably either not configured or are incorrect.");
-            log.info("Building Image Tarball at %s." + imageTarName);
-            try {
-                JibContainer jibTarImageContainer = contBuild.containerize(Containerizer.to(tarImage));
-                log.info(" %s successfully built.", tarImage);
-                return jibTarImageContainer;
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
+        } catch (Exception re) {
+
+            if(re instanceof RegistryException) {
+                log.warn("Registry Exception occured : %s", re.getMessage());
+                log.warn("Credentials are probably either not configured or are incorrect.");
+                log.info("Building Image Tarball at %s." + imageTarName);
+                try {
+                    JibContainer jibTarImageContainer = contBuild.containerize(Containerizer.to(tarImage));
+                    log.info(" %s successfully built.", tarImage);
+                    return jibTarImageContainer;
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            } else if(re instanceof java.util.concurrent.ExecutionException) {
+                log.warn("Execution Exception occured : %s", re.getMessage());
+                log.warn("The system is probably offline");
+                log.info("Building Image Tarball at %s in offline mode." + imageTarName);
+                Containerizer containerizer = Containerizer.to(tarImage);
+                containerizer.setOfflineMode(true);
+                try {
+                    JibContainer jibTarImageContainerOffline = contBuild.containerize(containerizer);
+                    log.info(" %s successfully built offline.", tarImage);
+                    return jibTarImageContainerOffline;
+                } catch (Exception e) {
+                    log.info("Exception occured : %s", e.getMessage());
+                    throw new IllegalStateException(e);
+                }
             }
         }
-        catch (Exception ex) {
-            throw new IllegalStateException(ex);
-        }
-        }
+        return null;
+    }
 
     public static JibBuildConfiguration getJibBuildConfiguration(BuildService.BuildServiceConfig config, BuildImageConfiguration buildImageConfiguration, String fullImageName, Logger log) throws MojoExecutionException {
 
